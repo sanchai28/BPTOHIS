@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Database (ข้อมูลผู้ป่วย)
+bp_log.db
+
+# Config (มี URL และ GitHub token)
+config.txt
+
+# Build outputs
+build/
+dist/
+_archive/
+*.spec
+
+# Runtime files
+_updater.bat
+_bptohis_update.zip
+
+# Audio cache (generate ได้ใหม่)
+static/audio/*.mp3
+
+# Editor
+.vscode/
+
+# PyInstaller
+*.manifest

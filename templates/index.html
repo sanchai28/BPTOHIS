@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="สถานีวัดความดันโลหิต สถานีสุขภาพโคกเจริญ — บริการด้วยใจ">
+    <title>สถานีสุขภาพโคกเจริญ — วัดความดันโลหิต</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="kiosk">
+
+        <!-- ===== HEADER ===== -->
+        <header class="kiosk-header">
+            <img src="{{ url_for('static', filename='Logo.png') }}" alt="โลโก้สถานีสุขภาพ" class="kiosk-logo">
+            <h1 class="kiosk-title">สถานีสุขภาพโคกเจริญ</h1>
+            <button id="btn-settings" class="kiosk-settings-btn" title="ตั้งค่าระบบ" aria-label="ตั้งค่าระบบ">
+                <i class="ph ph-gear-six"></i>
+            </button>
+        </header>
+
+        <!-- ===== UPDATE BANNER (hidden by default) ===== -->
+        <div class="update-banner" id="update-banner" style="display:none;">
+            <div class="update-banner-inner">
+                <i class="ph ph-arrow-circle-up" id="update-icon"></i>
+                <span id="update-message"></span>
+                <div class="update-progress-wrap" id="update-progress-wrap" style="display:none;">
+                    <div class="update-progress-bar" id="update-progress-bar"></div>
+                </div>
+                <button class="btn btn-update" id="btn-apply-update" style="display:none;">
+                    <i class="ph ph-arrow-clockwise"></i> รีสตาร์ทเพื่ออัปเดต
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== MAIN BODY (2 columns) ===== -->
+        <div class="kiosk-layout">
+
+            <!-- LEFT: Kiosk main area -->
+            <main class="kiosk-body">
+
+                <!-- STATE 1: รอเสียบบัตร -->
+                <div class="kiosk-state" id="status-card">
+                    <div class="kiosk-icon-wrap">
+                        <div class="kiosk-icon pulse-animation" id="kiosk-main-icon">
+                            <i class="ph ph-identification-card"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="kiosk-heading" id="status-text">กรุณาเสียบบัตรประชาชน</h2>
+                    <p class="kiosk-subtext" id="sub-status-text">เครื่องพร้อมใช้งาน</p>
+
+                    <div class="kiosk-badge" id="reader-badge">
+                        <i class="ph ph-check-circle"></i>
+                        <span>เครื่องอ่านบัตรพร้อม</span>
+                    </div>
+                </div>
+
+                <!-- STATE 2: ข้อมูลผู้ใช้ + ผลวัดความดัน -->
+                <div class="kiosk-state" id="info-card" style="display: none;">
+
+                    <!-- Patient Card -->
+                    <div class="patient-card" style="width:100%;">
+                        <div class="patient-card-header">
+                            <i class="ph ph-user-circle"></i>
+                            <span>ข้อมูลผู้รับบริการ</span>
+                        </div>
+                        <div class="patient-card-body">
+                            <div class="patient-info">
+                                <span class="patient-label">ชื่อ-นามสกุล</span>
+                                <span class="patient-name" id="val-name">-</span>
+                            </div>
+                            <div class="patient-divider"></div>
+                            <div class="patient-info">
+                                <span class="patient-label">เลขบัตรประชาชน</span>
+                                <span class="patient-cid" id="val-cid">-</span>
+                            </div>
+                            <!-- hidden address -->
+                            <div class="patient-info" style="display:none;">
+                                <span id="val-address">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDPA Notice -->
+                    <div class="pdpa-notice" style="width:100%;">
+                        <div class="pdpa-icon"><i class="ph ph-shield-check"></i></div>
+                        <div class="pdpa-text">
+                            <strong>ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA)</strong>
+                            <p>การเสียบบัตรประชาชนเข้าเครื่องนี้ ถือเป็นการยินยอมให้สถานีสุขภาพจัดเก็บข้อมูลชื่อและค่าความดันโลหิต เพื่อประโยชน์ทางด้านสุขภาพ ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+                        </div>
+                    </div>
+
+                    <!-- BP Waiting -->
+                    <div class="bp-waiting" id="bp-status" style="width:100%;">
+                        <div class="kiosk-icon-wrap">
+                            <div class="kiosk-icon pulse-animation">
+                                <i class="ph ph-heart-pulse"></i>
+                            </div>
+                        </div>
+                        <h2 class="kiosk-heading" style="font-size:2rem;">กรุณาวัดความดันโลหิต</h2>
+                        <p class="kiosk-subtext">กดปุ่ม <strong>START</strong> ที่เครื่องวัดความดัน แล้วรอผลสักครู่</p>
+                    </div>
+
+                    <!-- BP Result -->
+                    <div class="bp-result-area" id="bp-result" style="display: none; width:100%;">
+                        <div class="bp-cards">
+                            <div class="bp-card">
+                                <i class="ph ph-arrow-fat-up bp-card-icon"></i>
+                                <span class="bp-card-label">ความดันตัวบน</span>
+                                <span class="bp-card-value" id="val-sys">—</span>
+                                <span class="bp-card-unit">mmHg</span>
+                            </div>
+                            <div class="bp-card">
+                                <i class="ph ph-arrow-fat-down bp-card-icon"></i>
+                                <span class="bp-card-label">ความดันตัวล่าง</span>
+                                <span class="bp-card-value" id="val-dia">—</span>
+                                <span class="bp-card-unit">mmHg</span>
+                            </div>
+                            <div class="bp-card">
+                                <i class="ph ph-heartbeat bp-card-icon"></i>
+                                <span class="bp-card-label">ชีพจร</span>
+                                <span class="bp-card-value pulse-val" id="val-pulse">—</span>
+                                <span class="bp-card-unit">bpm</span>
+                            </div>
+                        </div>
+                        <div class="bp-summary" id="log-status">
+                            <i class="ph ph-clock"></i>
+                            <span>กำลังบันทึกข้อมูล...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- RIGHT: Daily Summary Panel -->
+            <aside class="summary-panel" id="summary-panel">
+                <div class="summary-header">
+                    <i class="ph ph-chart-bar"></i>
+                    <span>สรุปประจำวัน</span>
+                    <span class="summary-date" id="summary-date">—</span>
+                </div>
+
+                <div class="summary-total-row">
+                    <span class="summary-total-label">รวมทั้งหมด</span>
+                    <span class="summary-total-count" id="summary-total">0</span>
+                    <span class="summary-total-unit">ราย</span>
+                </div>
+
+                <!-- Legend -->
+                <div class="summary-legend">
+                    <span class="leg leg-optimal">เหมาะสม</span>
+                    <span class="leg leg-normal">ปกติ</span>
+                    <span class="leg leg-risk">สูงกว่าปกติ</span>
+                    <span class="leg leg-elevated">สูง ระดับ 1</span>
+                    <span class="leg leg-high">สูง ระดับ 2</span>
+                    <span class="leg leg-crisis">สูง ระดับ 3</span>
+                    <span class="leg leg-low">ต่ำ</span>
+                </div>
+
+                <!-- Tambon rows (filled by JS) -->
+                <div class="summary-rows" id="summary-rows">
+                    <div class="summary-empty">
+                        <i class="ph ph-database"></i>
+                        <span>ยังไม่มีข้อมูลวันนี้</span>
+                    </div>
+                </div>
+
+                <button class="summary-refresh-btn" id="btn-refresh-summary" title="รีเฟรชข้อมูล">
+                    <i class="ph ph-arrows-clockwise"></i> รีเฟรช
+                </button>
+            </aside>
+
+        </div><!-- /.kiosk-layout -->
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="kiosk-footer">
+            <div class="kiosk-clock" id="kiosk-clock"></div>
+            <div class="kiosk-log-toggle">
+                <button id="btn-clear" class="kiosk-footer-btn" title="ล้าง Log" aria-label="ล้าง Log">
+                    <i class="ph ph-trash"></i>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Log Panel (hidden) -->
+    <div class="log-panel" id="log-panel" style="display:none;">
+        <div class="log-content" id="log-content"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title"><i class="ph ph-sliders"></i> การตั้งค่าระบบ</h2>
+                <button class="icon-btn" id="btn-close-settings" aria-label="ปิด">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="input-url">Google Apps Script Web App URL</label>
+                    <input type="text" id="input-url" class="form-input"
+                        placeholder="https://script.google.com/macros/s/...">
+                </div>
+                <div class="form-group">
+                    <label for="input-github-repo">GitHub Repository (owner/repo)</label>
+                    <input type="text" id="input-github-repo" class="form-input"
+                        placeholder="เช่น sanchai-kk/BPTOHIS">
+                </div>
+                <div class="form-group row-group">
+                    <div class="flex-1">
+                        <label for="select-port">COM Port เครื่องวัดความดัน</label>
+                        <select id="select-port" class="form-input">
+                            <option value="Auto">Auto (ค้นหาอัตโนมัติ)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" id="btn-refresh-ports">
+                        <i class="ph ph-arrows-clockwise"></i> รีเฟรช
+                    </button>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="btn-test-submit">
+                        <i class="ph ph-paper-plane-tilt"></i> ทดสอบส่งข้อมูล
+                    </button>
+                    <button class="btn btn-primary" id="btn-save-settings">
+                        <i class="ph ph-floppy-disk"></i> บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+        <i class="ph ph-info" id="toast-icon"></i>
+        <span id="toast-message">Notification</span>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
