@@ -7,6 +7,23 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
+# เพิ่ม GitHub CLI เข้า PATH (กรณี winget ติดตั้งใหม่แล้ว shell ยังไม่รู้)
+$ghPaths = @(
+    "C:\Program Files\GitHub CLI",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source*\tools"
+)
+foreach ($p in $ghPaths) {
+    $resolved = Resolve-Path $p -ErrorAction SilentlyContinue
+    if ($resolved -and (Test-Path "$resolved\gh.exe")) {
+        $env:PATH = "$resolved;$env:PATH"
+        break
+    }
+}
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    Write-Host "ไม่พบ gh CLI กรุณารีสตาร์ท PowerShell แล้วลองใหม่" -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  BPTOHIS Release Script" -ForegroundColor Cyan
