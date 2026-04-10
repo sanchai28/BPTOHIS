@@ -343,7 +343,7 @@ def update_check_loop():
             check_for_update()
         except Exception as e:
             print(f'Update loop error: {e}')
-        time.sleep(3600)  # 1 ชั่วโมง
+        time.sleep(60)  # 1 นาที
 
 
 
