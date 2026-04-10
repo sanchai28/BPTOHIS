@@ -69,7 +69,10 @@ Write-Host "      OK" -ForegroundColor Green
 # [3/5] PyInstaller build
 Write-Host ""
 Write-Host "[3/5] PyInstaller build..." -ForegroundColor Cyan
-if (Test-Path "dist\BPTOHIS_v2") { Remove-Item "dist\BPTOHIS_v2" -Recurse -Force }
+if (Test-Path "dist\BPTOHIS_v2") {
+    cmd /c "rmdir /s /q dist\BPTOHIS_v2" 2>$null
+    Start-Sleep -Seconds 2
+}
 python -m PyInstaller BPTOHIS_v2_onedir.spec --noconfirm
 if (-not (Test-Path "dist\BPTOHIS_v2\BPTOHIS_v2.exe")) {
     Write-Host "[ERROR] Build failed." -ForegroundColor Red
