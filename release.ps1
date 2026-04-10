@@ -1,12 +1,11 @@
 # ============================================================
 # release.ps1 - BPTOHIS Release Script
-# ใช้งาน: .\release.ps1
-# ต้องการ: git, gh CLI, PyInstaller ติดตั้งแล้ว
 # ============================================================
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ErrorActionPreference = "Stop"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-Set-Location $ScriptDir
+Set-Location $PSScriptRoot
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
@@ -14,74 +13,86 @@ Write-Host "  BPTOHIS Release Script" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Step 0: อ่านเวอร์ชันปัจจุบัน ─────────────────────────
-$currentVersion = (Get-Content "version.txt" -Raw).Trim()
-Write-Host "เวอร์ชันปัจจุบัน: " -NoNewline
-Write-Host "v$currentVersion" -ForegroundColor Yellow
+# อ่านเวอร์ชันปัจจุบัน
+$currentVersion = (Get-Content "version.txt" -Encoding UTF8 -Raw).Trim()
+Write-Host "เวอร์ชันปัจจุบัน: v$currentVersion" -ForegroundColor Yellow
+Write-Host ""
 
-# ── Step 1: กรอกเวอร์ชันใหม่ ──────────────────────────────
-$newVersion = Read-Host "`nกรอกเวอร์ชันใหม่ (เช่น 1.1.0)"
-if (-not $newVersion -or $newVersion -eq $currentVersion) {
-    Write-Host "เวอร์ชันไม่ถูกต้องหรือเหมือนเดิม ยกเลิก" -ForegroundColor Red
-    exit 1
-}
+# กรอกเวอร์ชันใหม่ พร้อม validate รูปแบบ X.Y.Z
+do {
+    $newVersion = Read-Host "กรอกเวอร์ชันใหม่ (รูปแบบ X.Y.Z เช่น 1.1.0)"
+    if ($newVersion -notmatch '^\d+\.\d+\.\d+$') {
+        Write-Host "รูปแบบไม่ถูกต้อง ต้องเป็น X.Y.Z เช่น 1.1.0" -ForegroundColor Red
+        $newVersion = ""
+    } elseif ($newVersion -eq $currentVersion) {
+        Write-Host "เวอร์ชันเหมือนเดิม กรุณาใส่เวอร์ชันที่สูงกว่า" -ForegroundColor Red
+        $newVersion = ""
+    }
+} while (-not $newVersion)
 
-$releaseNotes = Read-Host "Release notes (สั้นๆ)"
-if (-not $releaseNotes) { $releaseNotes = "อัปเดตเวอร์ชัน $newVersion" }
+$releaseNotes = Read-Host "Release notes"
+if (-not $releaseNotes) { $releaseNotes = "Release v$newVersion" }
 
 Write-Host ""
-Write-Host "── จะ Release v$newVersion ──" -ForegroundColor Green
+Write-Host "จะ Release: v$newVersion" -ForegroundColor Green
 Write-Host "Notes: $releaseNotes"
+Write-Host ""
 $confirm = Read-Host "ยืนยัน? (Y/N)"
-if ($confirm -ne "Y" -and $confirm -ne "y") { Write-Host "ยกเลิก"; exit 0 }
+if ($confirm -notin @("Y","y")) { Write-Host "ยกเลิก"; exit 0 }
 
-# ── Step 2: อัปเดต version.txt ────────────────────────────
-Write-Host "`n[1/5] อัปเดต version.txt..." -ForegroundColor Cyan
+# ── [1/5] อัปเดต version.txt ─────────────────────────────
+Write-Host ""
+Write-Host "[1/5] อัปเดต version.txt..." -ForegroundColor Cyan
 Set-Content "version.txt" $newVersion -Encoding UTF8
-Write-Host "     version.txt = $newVersion" -ForegroundColor Green
+Write-Host "      OK: version.txt = $newVersion" -ForegroundColor Green
 
-# ── Step 3: Git commit & push ─────────────────────────────
-Write-Host "`n[2/5] Git commit & push..." -ForegroundColor Cyan
+# ── [2/5] Git commit & push ───────────────────────────────
+Write-Host ""
+Write-Host "[2/5] Git commit & push..." -ForegroundColor Cyan
 git add .
-git commit -m "Release v$newVersion`: $releaseNotes"
+git commit -m "Release v${newVersion}: $releaseNotes"
 git tag "v$newVersion"
 git push origin master
 git push origin "v$newVersion"
-Write-Host "     Push สำเร็จ" -ForegroundColor Green
+Write-Host "      OK: Push สำเร็จ" -ForegroundColor Green
 
-# ── Step 4: PyInstaller Build ─────────────────────────────
-Write-Host "`n[3/5] PyInstaller build (one-dir)..." -ForegroundColor Cyan
+# ── [3/5] PyInstaller Build ───────────────────────────────
+Write-Host ""
+Write-Host "[3/5] PyInstaller build (one-dir)..." -ForegroundColor Cyan
+
 if (Test-Path "dist\BPTOHIS_v2") {
     Remove-Item -Recurse -Force "dist\BPTOHIS_v2"
 }
-pyinstaller BPTOHIS_v2_onedir.spec --noconfirm
+
+python -m PyInstaller BPTOHIS_v2_onedir.spec --noconfirm
+
 if (-not (Test-Path "dist\BPTOHIS_v2\BPTOHIS_v2.exe")) {
-    Write-Host "Build ล้มเหลว! ไม่พบ exe" -ForegroundColor Red
+    Write-Host "Build ล้มเหลว! ไม่พบ BPTOHIS_v2.exe" -ForegroundColor Red
     exit 1
 }
-Write-Host "     Build สำเร็จ" -ForegroundColor Green
 
-# ── Step 5: แตก version.txt ลงใน dist ────────────────────
+# คัดลอก version.txt เข้าไปใน dist ด้วย
 Set-Content "dist\BPTOHIS_v2\version.txt" $newVersion -Encoding UTF8
+Write-Host "      OK: Build สำเร็จ" -ForegroundColor Green
 
-# ── Step 6: ZIP ───────────────────────────────────────────
-Write-Host "`n[4/5] กำลัง ZIP..." -ForegroundColor Cyan
-$zipPath = "$ScriptDir\BPTOHIS_v2.zip"
+# ── [4/5] ZIP ─────────────────────────────────────────────
+Write-Host ""
+Write-Host "[4/5] กำลัง ZIP..." -ForegroundColor Cyan
+$zipPath = "$PSScriptRoot\BPTOHIS_v2.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "dist\BPTOHIS_v2" -DestinationPath $zipPath -CompressionLevel Optimal
 $sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
-Write-Host "     BPTOHIS_v2.zip ($sizeMB MB)" -ForegroundColor Green
+Write-Host "      OK: BPTOHIS_v2.zip ($sizeMB MB)" -ForegroundColor Green
 
-# ── Step 7: GitHub Release ────────────────────────────────
-Write-Host "`n[5/5] สร้าง GitHub Release v$newVersion..." -ForegroundColor Cyan
+# ── [5/5] GitHub Release ──────────────────────────────────
+Write-Host ""
+Write-Host "[5/5] สร้าง GitHub Release v$newVersion..." -ForegroundColor Cyan
 gh release create "v$newVersion" $zipPath `
     --title "BPTOHIS v$newVersion" `
     --notes $releaseNotes `
     --latest
-Write-Host "     Release สำเร็จ" -ForegroundColor Green
-
-# ── Cleanup ───────────────────────────────────────────────
 Remove-Item $zipPath -Force
+Write-Host "      OK: Release สำเร็จ" -ForegroundColor Green
 
 # ── Done ──────────────────────────────────────────────────
 Write-Host ""
